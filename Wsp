@@ -1,0 +1,8 @@
+local args = {
+    [1] = "rebirthRequest"
+}
+
+game:GetService("ReplicatedStorage").rEvents.rebirthRemote:InvokeServer(unpack(args))
+
+end
+end)
