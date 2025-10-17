@@ -15,20 +15,23 @@ local function ViewportSize()
 	return Vector2.new(1366, 768)
 end
 
-local function ResponsiveSize(scaleX, scaleY, minW, minH)
+local function ResponsiveSizePixels(scaleX, scaleY, minW, minH)
+	-- returns pixel UDim2 based on viewport; keeps original absolute behaviour but uses viewport proportion
 	local vs = ViewportSize()
-	local w = math.max(minW or 240, vs.X * (scaleX or 0.8))
-	local h = math.max(minH or 160, vs.Y * (scaleY or 0.7))
+	local w = math.max(minW or 240, math.floor(vs.X * (scaleX or 0.8)))
+	local h = math.max(minH or 160, math.floor(vs.Y * (scaleY or 0.7)))
 	return UDim2.new(0, math.floor(w), 0, math.floor(h))
 end
 
-local function ResponsiveTabWidth(percent, min)
+local function ResponsiveTabWidthPixels(percent, min)
 	local vs = ViewportSize()
 	return math.max(min or 80, math.floor(vs.X * (percent or 0.18)))
 end
 
 local UserInputService = game:GetService("UserInputService");
 local TweenService = game:GetService("TweenService");
+local RunService = game:GetService("RunService");
+
 function CreateRounded(Parent, Size)
 	local Rounded = Instance.new("UICorner");
 	Rounded.Name = "Rounded";
@@ -82,6 +85,7 @@ OutlineButton.BackgroundColor3 = _G.Dark;
 OutlineButton.BackgroundTransparency = 0;
 OutlineButton.Position = UDim2.new(0, 10, 0, 10);
 OutlineButton.Size = UDim2.new(0, 50, 0, 50);
+OutlineButton.BorderSizePixel = 0;
 CreateRounded(OutlineButton, 12);
 local ImageButton = Instance.new("ImageButton");
 ImageButton.Parent = OutlineButton;
@@ -94,10 +98,14 @@ ImageButton.ImageTransparency = 0;
 ImageButton.BackgroundTransparency = 0;
 ImageButton.Image = "rbxassetid://13940080072";
 ImageButton.AutoButtonColor = false;
+ImageButton.BorderSizePixel = 0;
 MakeDraggable(ImageButton, OutlineButton);
 CreateRounded(ImageButton, 10);
-ImageButton.MouseButton1Click:connect(function()
-	(game.CoreGui:FindFirstChild("RelzHub")).Enabled = not (game.CoreGui:FindFirstChild("RelzHub")).Enabled;
+ImageButton.Activated:Connect(function()
+	local hub = game.CoreGui:FindFirstChild("RelzHub")
+	if hub then
+		hub.Enabled = not hub.Enabled
+	end
 end);
 local NotificationFrame = Instance.new("ScreenGui");
 NotificationFrame.Name = "NotificationFrame";
@@ -135,6 +143,7 @@ function Update:Notify(desc)
 	OutlineFrame.BackgroundTransparency = 0.4;
 	OutlineFrame.Position = UDim2.new(0.5, 0, -0.2, 0);
 	OutlineFrame.Size = UDim2.new(0, 412, 0, 72);
+	OutlineFrame.BorderSizePixel = 0;
 	Frame.Name = "Frame";
 	Frame.Parent = OutlineFrame;
 	Frame.ClipsDescendants = true;
@@ -344,16 +353,16 @@ function Update:Window(Config)
 	local isMobile = UserInputService.TouchEnabled or (UserInputService.TouchEnabled == true)
 
 	if isMobile then
-		-- use a responsive size that fits most phones
-		WindowConfig.Size = ResponsiveSize(0.92, 0.86, 300, 220)
-		WindowConfig.TabWidth = ResponsiveTabWidth(0.18, 80)
+		-- use a responsive size in pixels that fits most phones
+		WindowConfig.Size = ResponsiveSizePixels(0.92, 0.86, 300, 220)
+		WindowConfig.TabWidth = ResponsiveTabWidthPixels(0.18, 80)
 	else
 		-- fallback: if user didn't pass a size, use a desktop-friendly responsive default
 		if not WindowConfig.Size then
-			WindowConfig.Size = ResponsiveSize(0.7, 0.7, 600, 400)
+			WindowConfig.Size = ResponsiveSizePixels(0.7, 0.7, 600, 400)
 		end
 		if not WindowConfig.TabWidth then
-			WindowConfig.TabWidth = ResponsiveTabWidth(0.18, 100)
+			WindowConfig.TabWidth = ResponsiveTabWidthPixels(0.18, 100)
 		end
 	end
 
@@ -376,6 +385,7 @@ function Update:Window(Config)
 	OutlineMain.BackgroundTransparency = 0.4;
 	OutlineMain.Position = UDim2.new(0.5, 0, 0.45, 0);
 	OutlineMain.Size = UDim2.new(0, 0, 0, 0);
+	OutlineMain.BorderSizePixel = 0;
 	CreateRounded(OutlineMain, 15);
 	local Main = Instance.new("Frame");
 	Main.Name = "Main";
@@ -386,6 +396,7 @@ function Update:Window(Config)
 	Main.BackgroundTransparency = 0;
 	Main.Position = UDim2.new(0.5, 0, 0.5, 0);
 	Main.Size = WindowConfig.Size;
+	Main.BorderSizePixel = 0;
 	OutlineMain:TweenSize(UDim2.new(0, WindowConfig.Size.X.Offset + 15, 0, WindowConfig.Size.Y.Offset + 15), "Out", "Quad", 0.4, true);
 	CreateRounded(Main, 12);
 	local BtnStroke = Instance.new("UIStroke");
@@ -398,6 +409,7 @@ function Update:Window(Config)
 	DragButton.BackgroundColor3 = _G.Primary;
 	DragButton.BackgroundTransparency = 1;
 	DragButton.ZIndex = 10;
+	DragButton.BorderSizePixel = 0;
 	local mouse = game.Players.LocalPlayer:GetMouse();
 	local uis = game:GetService("UserInputService");
 	local CircleDragButton = Instance.new("UICorner");
@@ -428,7 +440,7 @@ function Update:Window(Config)
 	-- allow the hub title to scale on smaller screens (mobile)
 	NameHub.TextScaled = true;
 	local nameHubSize = (game:GetService("TextService")):GetTextSize(NameHub.Text, NameHub.TextSize, NameHub.Font, Vector2.new(math.huge, math.huge));
-	NameHub.Size = UDim2.new(0, nameHubSize.X, 0, 25);
+	NameHub.Size = UDim2.new(0, math.min(nameHubSize.X, WindowConfig.Size.X.Offset - 100), 0, 25);
 	local SubTitle = Instance.new("TextLabel");
 	SubTitle.Name = "SubTitle";
 	SubTitle.Parent = NameHub;
@@ -443,7 +455,7 @@ function Update:Window(Config)
 	SubTitle.TextColor3 = Color3.fromRGB(150, 150, 150);
 	SubTitle.TextScaled = true;
 	local SubTitleSize = (game:GetService("TextService")):GetTextSize(SubTitle.Text, SubTitle.TextSize, SubTitle.Font, Vector2.new(math.huge, math.huge));
-	SubTitle.Size = UDim2.new(0, SubTitleSize.X, 0, 25);
+	SubTitle.Size = UDim2.new(0, math.min(SubTitleSize.X, WindowConfig.Size.X.Offset - nameHubSize.X - 60), 0, 25);
 	local CloseButton = Instance.new("ImageButton");
 	CloseButton.Name = "CloseButton";
 	CloseButton.Parent = Top;
@@ -456,8 +468,12 @@ function Update:Window(Config)
 	CloseButton.ImageTransparency = 0;
 	CloseButton.ImageColor3 = Color3.fromRGB(245, 245, 245);
 	CreateRounded(CloseButton, 3);
-	CloseButton.MouseButton1Click:connect(function()
-		(game.CoreGui:FindFirstChild("RelzHub")).Enabled = not (game.CoreGui:FindFirstChild("RelzHub")).Enabled;
+	CloseButton.BorderSizePixel = 0;
+	CloseButton.Activated:Connect(function()
+		local hub = game.CoreGui:FindFirstChild("RelzHub")
+		if hub then
+			hub.Enabled = not hub.Enabled
+		end
 	end);
 	local ResizeButton = Instance.new("ImageButton");
 	ResizeButton.Name = "ResizeButton";
@@ -471,6 +487,7 @@ function Update:Window(Config)
 	ResizeButton.ImageTransparency = 0;
 	ResizeButton.ImageColor3 = Color3.fromRGB(245, 245, 245);
 	CreateRounded(ResizeButton, 3);
+	ResizeButton.BorderSizePixel = 0;
 	local BackgroundSettings = Instance.new("Frame");
 	BackgroundSettings.Name = "BackgroundSettings";
 	BackgroundSettings.Parent = OutlineMain;
@@ -483,6 +500,7 @@ function Update:Window(Config)
 	BackgroundSettings.Size = UDim2.new(1, 0, 1, 0);
 	BackgroundSettings.Visible = false;
 	CreateRounded(BackgroundSettings, 15);
+	BackgroundSettings.BorderSizePixel = 0;
 	local SettingsFrame = Instance.new("Frame");
 	SettingsFrame.Name = "SettingsFrame";
 	SettingsFrame.Parent = BackgroundSettings;
@@ -493,6 +511,7 @@ function Update:Window(Config)
 	SettingsFrame.Position = UDim2.new(0.5, 0, 0.5, 0);
 	SettingsFrame.Size = UDim2.new(0.7, 0, 0.7, 0);
 	CreateRounded(SettingsFrame, 15);
+	SettingsFrame.BorderSizePixel = 0;
 	local CloseSettings = Instance.new("ImageButton");
 	CloseSettings.Name = "CloseSettings";
 	CloseSettings.Parent = SettingsFrame;
@@ -505,7 +524,8 @@ function Update:Window(Config)
 	CloseSettings.ImageTransparency = 0;
 	CloseSettings.ImageColor3 = Color3.fromRGB(245, 245, 245);
 	CreateRounded(CloseSettings, 3);
-	CloseSettings.MouseButton1Click:connect(function()
+	CloseSettings.BorderSizePixel = 0;
+	CloseSettings.Activated:Connect(function()
 		BackgroundSettings.Visible = false;
 	end);
 	local SettingsButton = Instance.new("ImageButton");
@@ -520,7 +540,8 @@ function Update:Window(Config)
 	SettingsButton.ImageTransparency = 0;
 	SettingsButton.ImageColor3 = Color3.fromRGB(245, 245, 245);
 	CreateRounded(SettingsButton, 3);
-	SettingsButton.MouseButton1Click:connect(function()
+	SettingsButton.BorderSizePixel = 0;
+	SettingsButton.Activated:Connect(function()
 		BackgroundSettings.Visible = true;
 	end);
 	local TitleSettings = Instance.new("TextLabel");
@@ -599,8 +620,9 @@ function Update:Window(Config)
 		Checkbox.Image = "rbxassetid://10709790644";
 		Checkbox.ImageTransparency = 1;
 		Checkbox.ImageColor3 = Color3.fromRGB(245, 245, 245);
+		Checkbox.BorderSizePixel = 0;
 		CreateRounded(Checkbox, 5);
-		Checkbox.MouseButton1Click:Connect(function()
+		Checkbox.Activated:Connect(function()
 			checked = not checked;
 			if checked then
 				Checkbox.ImageTransparency = 0;
@@ -641,7 +663,8 @@ function Update:Window(Config)
 		Button.TextColor3 = Color3.fromRGB(255, 255, 255);
 		Button.TextSize = 15;
 		Button.AutoButtonColor = false;
-		Button.MouseButton1Click:Connect(function()
+		Button.BorderSizePixel = 0;
+		Button.Activated:Connect(function()
 			callback();
 		end);
 		CreateRounded(Button, 5);
@@ -666,8 +689,9 @@ function Update:Window(Config)
 	Tab.BackgroundColor3 = Color3.fromRGB(45, 45, 45);
 	Tab.Position = UDim2.new(0, 8, 0, Top.Size.Y.Offset);
 	Tab.BackgroundTransparency = 1;
-	-- use responsive Tab width
-	Tab.Size = UDim2.new(0, WindowConfig.TabWidth, Config.Size.Y.Scale, Config.Size.Y.Offset - Top.Size.Y.Offset - 8);
+	-- use responsive Tab width (pixel)
+	Tab.Size = UDim2.new(0, WindowConfig.TabWidth, 0, Main.Size.Y.Offset - Top.Size.Y.Offset - 8);
+	Tab.BorderSizePixel = 0;
 	local BtnStroke = Instance.new("UIStroke");
 	local ScrollTab = Instance.new("ScrollingFrame");
 	ScrollTab.Name = "ScrollTab";
@@ -693,8 +717,9 @@ function Update:Window(Config)
 	Page.Parent = Main;
 	Page.BackgroundColor3 = _G.Dark;
 	Page.Position = UDim2.new(0, Tab.Size.X.Offset + 18, 0, Top.Size.Y.Offset);
-	Page.Size = UDim2.new(Config.Size.X.Scale, Config.Size.X.Offset - Tab.Size.X.Offset - 25, Config.Size.Y.Scale, Config.Size.Y.Offset - Top.Size.Y.Offset - 8);
+	Page.Size = UDim2.new(0, Main.Size.X.Offset - Tab.Size.X.Offset - 25, 0, Main.Size.Y.Offset - Top.Size.Y.Offset - 8);
 	Page.BackgroundTransparency = 1;
+	Page.BorderSizePixel = 0;
 	CreateRounded(Page, 3);
 	local MainPage = Instance.new("Frame");
 	MainPage.Name = "MainPage";
@@ -718,9 +743,13 @@ function Update:Window(Config)
 	UIPageLayout.ScrollWheelInputEnabled = false;
 	UIPageLayout.TouchInputEnabled = false;
 	MakeDraggable(Top, OutlineMain);
+	-- toggle visibility on Insert (desktop) and via ImageButton on mobile
 	UserInputService.InputBegan:Connect(function(input)
 		if input.KeyCode == Enum.KeyCode.Insert then
-			(game.CoreGui:FindFirstChild("RelzHub")).Enabled = not (game.CoreGui:FindFirstChild("RelzHub")).Enabled;
+			local hub = game.CoreGui:FindFirstChild("RelzHub")
+			if hub then
+				hub.Enabled = not hub.Enabled
+			end
 		end;
 	end);
 	local Dragging = false;
@@ -742,6 +771,56 @@ function Update:Window(Config)
 			Tab.Size = UDim2.new(0, WindowConfig.TabWidth, 0, math.clamp(Input.Position.Y - Tab.AbsolutePosition.Y - 8, WindowConfig.Size.Y.Offset - Top.Size.Y.Offset - 10, math.huge));
 		end;
 	end);
+
+	-- Adjust layout to always fit inside the main UI base (use absolute sizes from Main.AbsoluteSize)
+	local function AdjustLayout()
+		pcall(function()
+			-- clamp Main size to viewport so it never goes off-screen on mobile
+			local vs = ViewportSize()
+			local maxW = math.max(220, math.floor(vs.X - 16))
+			local maxH = math.max(160, math.floor(vs.Y - 24))
+			local newW = math.clamp(Main.Size.X.Offset, 200, maxW)
+			local newH = math.clamp(Main.Size.Y.Offset, 160, maxH)
+			-- ensure OutlineMain fits around Main
+			OutlineMain.Size = UDim2.new(0, newW + 15, 0, newH + 15)
+			Main.Size = UDim2.new(0, newW, 0, newH)
+
+			-- Tab height and width
+			local tabW = WindowConfig.TabWidth or math.floor(newW * 0.18)
+			tabW = math.min(tabW, math.floor(newW * 0.5))
+			Tab.Size = UDim2.new(0, tabW, 0, math.max(60, newH - Top.Size.Y.Offset - 8))
+
+			-- Page fills remaining space
+			local pageW = math.max(120, newW - tabW - 25)
+			local pageH = math.max(80, newH - Top.Size.Y.Offset - 8)
+			Page.Size = UDim2.new(0, pageW, 0, pageH)
+			MainPage.Size = UDim2.new(1, 0, 1, 0)
+			-- ensure Top doesn't overflow
+			Top.Size = UDim2.new(1, 0, 0, math.clamp(Top.Size.Y.Offset, 30, 48))
+
+		end)
+	end
+
+	RunService.Heartbeat:Connect(function()
+		-- continuously adjust to viewport changes and make touch interactions accurate
+		AdjustLayout()
+		pcall(function()
+			-- keep scrolling sizes updated
+			if MainPage:FindFirstChildWhichIsA("UIListLayout") then end
+			-- UIPage/Scroll canvas size updates:
+			for _, v in next, PageList:GetChildren() do
+				if v:IsA("ScrollingFrame") then
+					local list = v:FindFirstChildOfClass("UIListLayout")
+					if list then
+						v.CanvasSize = UDim2.new(0, 0, 0, list.AbsoluteContentSize.Y)
+					end
+				end
+			end
+			ScrollTab.CanvasSize = UDim2.new(0, 0, 0, TabListLayout.AbsoluteContentSize.Y);
+			ScrollSettings.CanvasSize = UDim2.new(0, 0, 0, SettingsListLayout.AbsoluteContentSize.Y);
+		end)
+	end)
+
 	local uitab = {};
 	function uitab:Tab(text, img)
 		local BtnStroke = Instance.new("UIStroke");
@@ -760,6 +839,7 @@ function Update:Window(Config)
 		TabButton.TextColor3 = Color3.fromRGB(255, 255, 255);
 		TabButton.TextSize = 12;
 		TabButton.TextTransparency = 0.9;
+		TabButton.BorderSizePixel = 0;
 		local SelectedTab = Instance.new("Frame");
 		SelectedTab.Name = "SelectedTab";
 		SelectedTab.Parent = TabButton;
@@ -802,8 +882,9 @@ function Update:Window(Config)
 		MainFramePage.Position = UDim2.new(0, 0, 0, 0);
 		MainFramePage.BackgroundTransparency = 1;
 		MainFramePage.Size = UDim2.new(1, 0, 1, 0);
-		MainFramePage.ScrollBarThickness = 0;
+		MainFramePage.ScrollBarThickness = 6;
 		MainFramePage.ScrollingDirection = Enum.ScrollingDirection.Y;
+		MainFramePage.BorderSizePixel = 0;
 		local zzzR = Instance.new("UICorner");
 		zzzR.Parent = MainPage;
 		zzzR.CornerRadius = UDim.new(0, 5);
@@ -813,35 +894,44 @@ function Update:Window(Config)
 		UIListLayout.Padding = UDim.new(0, 3);
 		UIListLayout.Parent = MainFramePage;
 		UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder;
-		TabButton.MouseButton1Click:Connect(function()
+		TabButton.Activated:Connect(function()
 			for i, v in next, ScrollTab:GetChildren() do
 				if v:IsA("TextButton") then
 					(TweenService:Create(v, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 						BackgroundTransparency = 1
 					})):Play();
-					(TweenService:Create(v.SelectedTab, TweenInfo.new(0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-						Size = UDim2.new(0, 3, 0, 0)
-					})):Play();
-					(TweenService:Create(v.IDK, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-						ImageTransparency = 0.4
-					})):Play();
-					(TweenService:Create(v.Title, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-						TextTransparency = 0.4
-					})):Play();
+					local sel = v:FindFirstChild("SelectedTab")
+					if sel then
+						(TweenService:Create(sel, TweenInfo.new(0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+							Size = UDim2.new(0, 3, 0, 0)
+						})):Play();
+					end
+					local idk = v:FindFirstChild("IDK")
+					if idk then
+						(TweenService:Create(idk, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+							ImageTransparency = 0.4
+						})):Play();
+					end
+					local titlev = v:FindFirstChild("Title")
+					if titlev then
+						(TweenService:Create(titlev, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+							TextTransparency = 0.4
+						})):Play();
+					end
 				end;
-				(TweenService:Create(TabButton, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-					BackgroundTransparency = 0.8
-				})):Play();
-				(TweenService:Create(SelectedTab, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-					Size = UDim2.new(0, 3, 0, 15)
-				})):Play();
-				(TweenService:Create(IDK, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-					ImageTransparency = 0
-				})):Play();
-				(TweenService:Create(Title, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-					TextTransparency = 0
-				})):Play();
 			end;
+			(TweenService:Create(TabButton, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				BackgroundTransparency = 0.8
+			})):Play();
+			(TweenService:Create(SelectedTab, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Size = UDim2.new(0, 3, 0, 15)
+			})):Play();
+			(TweenService:Create(IDK, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				ImageTransparency = 0
+			})):Play();
+			(TweenService:Create(Title, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				TextTransparency = 0
+			})):Play();
 			for i, v in next, PageList:GetChildren() do
 				currentpage = string.gsub(TabButton.Name, "Unique", "") .. "_Page";
 				if v.Name == currentpage then
@@ -855,28 +945,25 @@ function Update:Window(Config)
 					(TweenService:Create(v, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 						BackgroundTransparency = 1
 					})):Play();
-					(TweenService:Create(v.SelectedTab, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-						Size = UDim2.new(0, 3, 0, 15)
-					})):Play();
-					(TweenService:Create(v.IDK, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-						ImageTransparency = 0.4
-					})):Play();
-					(TweenService:Create(v.Title, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-						TextTransparency = 0.4
-					})):Play();
+					local sel = v:FindFirstChild("SelectedTab")
+					if sel then
+						(TweenService:Create(sel, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+							Size = UDim2.new(0, 3, 0, 15)
+						})):Play();
+					end
+					local idk = v:FindFirstChild("IDK")
+					if idk then
+						(TweenService:Create(idk, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+							ImageTransparency = 0.4
+						})):Play();
+					end
+					local titlev = v:FindFirstChild("Title")
+					if titlev then
+						(TweenService:Create(titlev, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+							TextTransparency = 0.4
+						})):Play();
+					end
 				end;
-				(TweenService:Create(TabButton, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-					BackgroundTransparency = 0.8
-				})):Play();
-				(TweenService:Create(SelectedTab, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-					Size = UDim2.new(0, 3, 0, 15)
-				})):Play();
-				(TweenService:Create(IDK, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-					ImageTransparency = 0
-				})):Play();
-				(TweenService:Create(Title, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-					TextTransparency = 0
-				})):Play();
 			end;
 			UIPageLayout:JumpToIndex(1);
 			abc = true;
@@ -889,7 +976,7 @@ function Update:Window(Config)
 			end);
 		end);
 		local defaultSize = true;
-		ResizeButton.MouseButton1Click:Connect(function()
+		ResizeButton.Activated:Connect(function()
 			if defaultSize then
 				defaultSize = false;
 				OutlineMain:TweenPosition(UDim2.new(0.5, 0, 0.45, 0), "Out", "Quad", 0.2, true);
@@ -949,6 +1036,7 @@ function Update:Window(Config)
 			TextButton.TextXAlignment = Enum.TextXAlignment.Left;
 			TextButton.TextColor3 = Color3.fromRGB(255, 255, 255);
 			TextButton.TextSize = 15;
+			TextButton.BorderSizePixel = 0;
 			TextLabel.Name = "TextLabel";
 			TextLabel.Parent = Button;
 			TextLabel.BackgroundColor3 = _G.Primary;
@@ -983,7 +1071,7 @@ function Update:Window(Config)
 			Black.Size = UDim2.new(1, 0, 0, 33);
 			UICorner_3.CornerRadius = UDim.new(0, 5);
 			UICorner_3.Parent = Black;
-			TextButton.MouseButton1Click:Connect(function()
+			TextButton.Activated:Connect(function()
 				callback();
 			end);
 		end;
@@ -1014,6 +1102,7 @@ function Update:Window(Config)
 			Button.Text = "";
 			Button.TextColor3 = Color3.fromRGB(0, 0, 0);
 			Button.TextSize = 11;
+			Button.BorderSizePixel = 0;
 			CreateRounded(Button, 5);
 			Title2.Parent = Button;
 			Title2.BackgroundColor3 = Color3.fromRGB(150, 150, 150);
@@ -1072,7 +1161,8 @@ function Update:Window(Config)
 			Circle.AnchorPoint = Vector2.new(0, 0.5);
 			UICorner_4.CornerRadius = UDim.new(0, 10);
 			UICorner_4.Parent = Circle;
-			ToggleImage.MouseButton1Click:Connect(function()
+			ToggleImage.BorderSizePixel = 0;
+			ToggleImage.Activated:Connect(function()
 				if toggled == false then
 					toggled = true;
 					Circle:TweenPosition(UDim2.new(0, 17, 0.5, 0), "Out", "Sine", 0.2, true);
@@ -1152,6 +1242,7 @@ function Update:Window(Config)
 			SelectItems.ClipsDescendants = true;
 			SelectItems.Text = "   Select Items";
 			SelectItems.TextXAlignment = Enum.TextXAlignment.Left;
+			SelectItems.BorderSizePixel = 0;
 			local ArrowDown = Instance.new("ImageLabel");
 			ArrowDown.Name = "ArrowDown";
 			ArrowDown.Parent = Dropdown;
@@ -1199,6 +1290,7 @@ function Update:Window(Config)
 			UIListLayout.Padding = UDim.new(0, 1);
 			UIPadding.Parent = DropScroll;
 			UIPadding.PaddingLeft = UDim.new(0, 5);
+			local activeItem = nil
 			for i, v in next, option do
 				local Item = Instance.new("TextButton");
 				local CRNRitems = Instance.new("UICorner");
@@ -1216,6 +1308,7 @@ function Update:Window(Config)
 				Item.TextTransparency = 0.5;
 				Item.TextXAlignment = Enum.TextXAlignment.Left;
 				Item.ZIndex = 4;
+				Item.BorderSizePixel = 0;
 				ItemPadding.Parent = Item;
 				ItemPadding.PaddingLeft = UDim.new(0, 8);
 				UICorner_5.Parent = Item;
@@ -1235,37 +1328,37 @@ function Update:Window(Config)
 					pcall(callback, var);
 					SelectItems.Text = "   " .. var;
 					activeItem = tostring(var);
-					for i, v in next, DropScroll:GetChildren() do
-						if v:IsA("TextButton") then
-							local SelectedItems = v:FindFirstChild("SelectedItems");
-							if activeItem == v.Text then
-								v.BackgroundTransparency = 0.8;
-								v.TextTransparency = 0;
-								if SelectedItems then
-									SelectedItems.BackgroundTransparency = 0;
+					for i, v2 in next, DropScroll:GetChildren() do
+						if v2:IsA("TextButton") then
+							local SelectedItems2 = v2:FindFirstChild("SelectedItems");
+							if activeItem == v2.Text then
+								v2.BackgroundTransparency = 0.8;
+								v2.TextTransparency = 0;
+								if SelectedItems2 then
+									SelectedItems2.BackgroundTransparency = 0;
 								end;
 							end;
 						end;
 					end;
 				end;
-				Item.MouseButton1Click:Connect(function()
+				Item.Activated:Connect(function()
 					SelectItems.ClipsDescendants = true;
-					callback(Item.Text);
+					pcall(callback, Item.Text);
 					activeItem = Item.Text;
-					for i, v in next, DropScroll:GetChildren() do
-						if v:IsA("TextButton") then
-							local SelectedItems = v:FindFirstChild("SelectedItems");
-							if activeItem == v.Text then
-								v.BackgroundTransparency = 0.8;
-								v.TextTransparency = 0;
-								if SelectedItems then
-									SelectedItems.BackgroundTransparency = 0;
+					for i, v2 in next, DropScroll:GetChildren() do
+						if v2:IsA("TextButton") then
+							local SelectedItems2 = v2:FindFirstChild("SelectedItems");
+							if activeItem == v2.Text then
+								v2.BackgroundTransparency = 0.8;
+								v2.TextTransparency = 0;
+								if SelectedItems2 then
+									SelectedItems2.BackgroundTransparency = 0;
 								end;
 							else
-								v.BackgroundTransparency = 1;
-								v.TextTransparency = 0.5;
-								if SelectedItems then
-									SelectedItems.BackgroundTransparency = 1;
+								v2.BackgroundTransparency = 1;
+								v2.TextTransparency = 0.5;
+								if SelectedItems2 then
+									SelectedItems2.BackgroundTransparency = 1;
 								end;
 							end;
 						end;
@@ -1274,7 +1367,7 @@ function Update:Window(Config)
 				end);
 			end;
 			DropScroll.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y);
-			SelectItems.MouseButton1Click:Connect(function()
+			SelectItems.Activated:Connect(function()
 				if isdropping == false then
 					isdropping = true;
 					(TweenService:Create(DropdownFrameScroll, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
@@ -1319,6 +1412,7 @@ function Update:Window(Config)
 				Item.TextTransparency = 0.5;
 				Item.TextXAlignment = Enum.TextXAlignment.Left;
 				Item.ZIndex = 4;
+				Item.BorderSizePixel = 0;
 				ItemPadding.Parent = Item;
 				ItemPadding.PaddingLeft = UDim.new(0, 8);
 				UICorner_5.Parent = Item;
@@ -1334,23 +1428,23 @@ function Update:Window(Config)
 				SelectedItems.ZIndex = 4;
 				CRNRitems.Parent = SelectedItems;
 				CRNRitems.CornerRadius = UDim.new(0, 999);
-				Item.MouseButton1Click:Connect(function()
-					callback(Item.Text);
+				Item.Activated:Connect(function()
+					pcall(callback, Item.Text);
 					activeItem = Item.Text;
-					for i, v in next, DropScroll:GetChildren() do
-						if v:IsA("TextButton") then
-							local SelectedItems = v:FindFirstChild("SelectedItems");
-							if activeItem == v.Text then
-								v.BackgroundTransparency = 0.8;
-								v.TextTransparency = 0;
-								if SelectedItems then
-									SelectedItems.BackgroundTransparency = 0;
+					for i, v2 in next, DropScroll:GetChildren() do
+						if v2:IsA("TextButton") then
+							local SelectedItems2 = v2:FindFirstChild("SelectedItems");
+							if activeItem == v2.Text then
+								v2.BackgroundTransparency = 0.8;
+								v2.TextTransparency = 0;
+								if SelectedItems2 then
+									SelectedItems2.BackgroundTransparency = 0;
 								end;
 							else
-								v.BackgroundTransparency = 1;
-								v.TextTransparency = 0.5;
-								if SelectedItems then
-									SelectedItems.BackgroundTransparency = 1;
+								v2.BackgroundTransparency = 1;
+								v2.TextTransparency = 0.5;
+								if SelectedItems2 then
+									SelectedItems2.BackgroundTransparency = 1;
 								end;
 							end;
 						end;
@@ -1508,6 +1602,7 @@ function Update:Window(Config)
 			Textbox.BackgroundColor3 = _G.Primary;
 			Textbox.BackgroundTransparency = 0.8;
 			Textbox.Size = UDim2.new(1, 0, 0, 35);
+			Textbox.BorderSizePixel = 0;
 			TextboxCorner.CornerRadius = UDim.new(0, 5);
 			TextboxCorner.Name = "TextboxCorner";
 			TextboxCorner.Parent = Textbox;
@@ -1530,15 +1625,23 @@ function Update:Window(Config)
 			RealTextbox.BackgroundTransparency = 0.8;
 			RealTextbox.Position = UDim2.new(1, -5, 0.5, 0);
 			RealTextbox.AnchorPoint = Vector2.new(1, 0.5);
-			RealTextbox.Size = UDim2.new(0, 80, 0, 25);
+			RealTextbox.Size = UDim2.new(0, math.clamp( math.floor(Main.AbsoluteSize.X * 0.25 ), 60, 160), 0, 25);
 			RealTextbox.Font = Enum.Font.Gotham;
 			RealTextbox.Text = "";
 			RealTextbox.TextColor3 = Color3.fromRGB(225, 225, 225);
 			RealTextbox.TextSize = 11;
 			RealTextbox.TextTransparency = 0;
 			RealTextbox.ClipsDescendants = true;
-			RealTextbox.FocusLost:Connect(function()
-				callback(RealTextbox.Text);
+			RealTextbox.BorderSizePixel = 0;
+			RealTextbox.PlaceholderText = ""
+			RealTextbox.FocusLost:Connect(function(enterPressed)
+				-- on mobile, FocusLost triggers after the user dismisses keyboard or presses submit
+				pcall(function()
+					callback(RealTextbox.Text);
+				end)
+				if disappear then
+					RealTextbox.Text = ""
+				end
 			end);
 			UICorner.CornerRadius = UDim.new(0, 5);
 			UICorner.Parent = RealTextbox;
@@ -1553,6 +1656,7 @@ function Update:Window(Config)
 			Frame.BackgroundColor3 = _G.Primary;
 			Frame.BackgroundTransparency = 1;
 			Frame.Size = UDim2.new(1, 0, 0, 30);
+			Frame.BorderSizePixel = 0;
 			Label.Name = "Label";
 			Label.Parent = Frame;
 			Label.BackgroundColor3 = Color3.fromRGB(255, 255, 255);
@@ -1592,6 +1696,7 @@ function Update:Window(Config)
 			Seperator.BackgroundColor3 = _G.Primary;
 			Seperator.BackgroundTransparency = 1;
 			Seperator.Size = UDim2.new(1, 0, 0, 36);
+			Seperator.BorderSizePixel = 0;
 			Sep1.Name = "Sep1";
 			Sep1.Parent = Seperator;
 			Sep1.BackgroundColor3 = Color3.fromRGB(255, 255, 255);
