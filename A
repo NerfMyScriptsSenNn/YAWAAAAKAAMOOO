@@ -5,14 +5,36 @@ end;
 _G.Primary = Color3.fromRGB(100, 100, 100);
 _G.Dark = Color3.fromRGB(22, 22, 26);
 _G.Third = Color3.fromRGB(255, 0, 0);
+
+-- Responsive helpers (new)
+local Camera = workspace.CurrentCamera
+local function ViewportSize()
+	if Camera and Camera.ViewportSize then
+		return Camera.ViewportSize
+	end
+	return Vector2.new(1366, 768)
+end
+
+local function ResponsiveSize(scaleX, scaleY, minW, minH)
+	local vs = ViewportSize()
+	local w = math.max(minW or 240, vs.X * (scaleX or 0.8))
+	local h = math.max(minH or 160, vs.Y * (scaleY or 0.7))
+	return UDim2.new(0, math.floor(w), 0, math.floor(h))
+end
+
+local function ResponsiveTabWidth(percent, min)
+	local vs = ViewportSize()
+	return math.max(min or 80, math.floor(vs.X * (percent or 0.18)))
+end
+
+local UserInputService = game:GetService("UserInputService");
+local TweenService = game:GetService("TweenService");
 function CreateRounded(Parent, Size)
 	local Rounded = Instance.new("UICorner");
 	Rounded.Name = "Rounded";
 	Rounded.Parent = Parent;
 	Rounded.CornerRadius = UDim.new(0, Size);
 end;
-local UserInputService = game:GetService("UserInputService");
-local TweenService = game:GetService("TweenService");
 function MakeDraggable(topbarobject, object)
 	local Dragging = nil;
 	local DragInput = nil;
@@ -129,7 +151,6 @@ function Update:Notify(desc)
 	Image.Size = UDim2.new(0, 45, 0, 45);
 	Image.Image = "rbxassetid://13940080072";
 	Title.Parent = Frame;
-	Title.BackgroundColor3 = _G.Primary;
 	Title.BackgroundTransparency = 1;
 	Title.Position = UDim2.new(0, 55, 0, 14);
 	Title.Size = UDim2.new(0, 10, 0, 20);
@@ -139,7 +160,6 @@ function Update:Notify(desc)
 	Title.TextSize = 16;
 	Title.TextXAlignment = Enum.TextXAlignment.Left;
 	Desc.Parent = Frame;
-	Desc.BackgroundColor3 = _G.Primary;
 	Desc.BackgroundTransparency = 1;
 	Desc.Position = UDim2.new(0, 55, 0, 33);
 	Desc.Size = UDim2.new(0, 10, 0, 10);
@@ -193,6 +213,8 @@ function Update:StartLoad()
 	TitleLoader.Position = UDim2.new(0.5, 0, 0.3, 0);
 	TitleLoader.Size = UDim2.new(0.8, 0, 0.2, 0);
 	TitleLoader.TextTransparency = 0;
+	-- Make loader text scale on small screens
+	TitleLoader.TextScaled = true;
 	local DescriptionLoader = Instance.new("TextLabel");
 	DescriptionLoader.Parent = MainLoaderFrame;
 	DescriptionLoader.Text = "Loading..";
@@ -204,6 +226,7 @@ function Update:StartLoad()
 	DescriptionLoader.Position = UDim2.new(0.5, 0, 0.6, 0);
 	DescriptionLoader.Size = UDim2.new(0.8, 0, 0.2, 0);
 	DescriptionLoader.TextTransparency = 0;
+	DescriptionLoader.TextScaled = true;
 	local LoadingBarBackground = Instance.new("Frame");
 	LoadingBarBackground.Parent = MainLoaderFrame;
 	LoadingBarBackground.BackgroundColor3 = Color3.fromRGB(50, 50, 50);
@@ -310,10 +333,30 @@ function Update:LoadAnimation()
 end;
 function Update:Window(Config)
 	assert(Config.SubTitle, "v4");
+
+	-- if user didn't pass a size, or if on mobile, compute a responsive default
 	local WindowConfig = {
 		Size = Config.Size,
 		TabWidth = Config.TabWidth
 	};
+
+	-- detect mobile/touch and override defaults to be more mobile friendly
+	local isMobile = UserInputService.TouchEnabled or (UserInputService.TouchEnabled == true)
+
+	if isMobile then
+		-- use a responsive size that fits most phones
+		WindowConfig.Size = ResponsiveSize(0.92, 0.86, 300, 220)
+		WindowConfig.TabWidth = ResponsiveTabWidth(0.18, 80)
+	else
+		-- fallback: if user didn't pass a size, use a desktop-friendly responsive default
+		if not WindowConfig.Size then
+			WindowConfig.Size = ResponsiveSize(0.7, 0.7, 600, 400)
+		end
+		if not WindowConfig.TabWidth then
+			WindowConfig.TabWidth = ResponsiveTabWidth(0.18, 100)
+		end
+	end
+
 	local osfunc = {};
 	local uihide = false;
 	local abc = false;
@@ -382,6 +425,8 @@ function Update:Window(Config)
 	NameHub.TextSize = 20;
 	NameHub.TextColor3 = Color3.fromRGB(255, 255, 255);
 	NameHub.TextXAlignment = Enum.TextXAlignment.Left;
+	-- allow the hub title to scale on smaller screens (mobile)
+	NameHub.TextScaled = true;
 	local nameHubSize = (game:GetService("TextService")):GetTextSize(NameHub.Text, NameHub.TextSize, NameHub.Font, Vector2.new(math.huge, math.huge));
 	NameHub.Size = UDim2.new(0, nameHubSize.X, 0, 25);
 	local SubTitle = Instance.new("TextLabel");
@@ -396,6 +441,7 @@ function Update:Window(Config)
 	SubTitle.Text = Config.SubTitle;
 	SubTitle.TextSize = 15;
 	SubTitle.TextColor3 = Color3.fromRGB(150, 150, 150);
+	SubTitle.TextScaled = true;
 	local SubTitleSize = (game:GetService("TextService")):GetTextSize(SubTitle.Text, SubTitle.TextSize, SubTitle.Font, Vector2.new(math.huge, math.huge));
 	SubTitle.Size = UDim2.new(0, SubTitleSize.X, 0, 25);
 	local CloseButton = Instance.new("ImageButton");
@@ -490,6 +536,7 @@ function Update:Window(Config)
 	TitleSettings.TextSize = 20;
 	TitleSettings.TextColor3 = Color3.fromRGB(245, 245, 245);
 	TitleSettings.TextXAlignment = Enum.TextXAlignment.Left;
+	TitleSettings.TextScaled = true;
 	local SettingsMenuList = Instance.new("Frame");
 	SettingsMenuList.Name = "SettingsMenuList";
 	SettingsMenuList.Parent = SettingsFrame;
@@ -619,6 +666,7 @@ function Update:Window(Config)
 	Tab.BackgroundColor3 = Color3.fromRGB(45, 45, 45);
 	Tab.Position = UDim2.new(0, 8, 0, Top.Size.Y.Offset);
 	Tab.BackgroundTransparency = 1;
+	-- use responsive Tab width
 	Tab.Size = UDim2.new(0, WindowConfig.TabWidth, Config.Size.Y.Scale, Config.Size.Y.Offset - Top.Size.Y.Offset - 8);
 	local BtnStroke = Instance.new("UIStroke");
 	local ScrollTab = Instance.new("ScrollingFrame");
