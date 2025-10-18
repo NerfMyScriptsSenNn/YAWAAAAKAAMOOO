@@ -4638,9 +4638,10 @@ function Library:Window(p)
 		end)
 
 		do
-			-- Close UI small button: replace existing CloseUIButton section with this
+			-- Close UI small button (replace existing block)
 local CloseUI = p.CloseUIButton or {}
-local closeSize = (CloseUI.Size and tonumber(CloseUI.Size)) or 40
+-- default slightly bigger (was 40) — change CloseUI.Size to override
+local closeSize = (CloseUI.Size and tonumber(CloseUI.Size)) or 44
 
 local CloseUIShadow = Instance.new("ImageLabel")
 local UIPaddingCloseUI_1 = Instance.new("UIPadding")
@@ -4654,7 +4655,10 @@ CloseUIShadow.Parent = ScreenGui
 CloseUIShadow.BackgroundColor3 = Color3.fromRGB(163,162,165)
 CloseUIShadow.BackgroundTransparency = 1
 CloseUIShadow.Position = UDim2.new(0, 0, 0.200000003, 0)
-CloseUIShadow.Size = UDim2.new(0, closeSize, 0, closeSize)
+
+-- start slightly smaller and tween up for a subtle "pop"
+local initialSize = math.max(8, closeSize - 6)
+CloseUIShadow.Size = UDim2.new(0, initialSize, 0, initialSize)
 
 -- use provided image if present (accepts number or "rbxassetid://.." string)
 if CloseUI.Image then
@@ -4664,7 +4668,8 @@ if CloseUI.Image then
         CloseUIShadow.Image = tostring(CloseUI.Image)
     end
 else
-    CloseUIShadow.Image = "https://www.roblox.com/Thumbs/Asset.ashx?width=420&height=420&assetId=94371101129415" -- fallback
+    -- fallback image (change assetId here if you prefer)
+    CloseUIShadow.Image = "https://www.roblox.com/Thumbs/Asset.ashx?width=420&height=420&assetId=94371101129415"
 end
 
 CloseUIShadow.ImageColor3 = themes[IsTheme] and themes[IsTheme].Shadow or Color3.fromRGB(170,24,24)
@@ -4721,6 +4726,15 @@ if not CloseUI.Image then
     Title_1.TextSize = 12
     addToTheme('Text & Icon', Title_1)
 end
+
+-- subtle entrance tween so the button "gets a little bigger"
+pcall(function()
+    local TweenService = game:GetService("TweenService")
+    local tweenInfo = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local target = {Size = UDim2.new(0, closeSize, 0, closeSize)}
+    local tween = TweenService:Create(CloseUIShadow, tweenInfo, target)
+    tween:Play()
+end)
 
 local Click = click(CloseUIShadow)
 lak(Click, CloseUIShadow)
