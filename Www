@@ -4664,7 +4664,7 @@ if CloseUI.Image then
         CloseUIShadow.Image = tostring(CloseUI.Image)
     end
 else
-    CloseUIShadow.Image = "https://www.roblox.com/Thumbs/Asset.ashx?width=420&height=420&assetId=" -- fallback
+    CloseUIShadow.Image = "https://www.roblox.com/Thumbs/Asset.ashx?width=420&height=420&assetId=94371101129415" -- fallback
 end
 
 CloseUIShadow.ImageColor3 = themes[IsTheme] and themes[IsTheme].Shadow or Color3.fromRGB(170,24,24)
